@@ -1,0 +1,47 @@
+name: Bilibili 24H Live (Pure & Stable)
+
+on:
+  schedule:
+    - cron: '0 */5 * * *' # 每5小时自动重启一次
+  workflow_dispatch:      # 允许手动随时启动
+
+jobs:
+  push-live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg and Fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+
+      - name: Download and Stream
+        run: |
+          # 1. 下载视频
+          wget -c -O video.mp4 "https://objectstorageapi.ap-southeast-1.clawcloudrun.com/szi722v0-mine/video.mp4"
+          
+          if [ ! -s video.mp4 ]; then
+            echo "错误：下载失败！"
+            exit 1
+          fi
+
+          echo "开始纯净模式推流..."
+          # 2. 核心推流循环
+          # vf: 右上角动态北京时间
+          # b:v: 限制2500k码率，保证不卡顿
+          # metadata: 伪装OBS环境
+          timeout 5.5h bash -c '
+            while true; do
+              ffmpeg -re -i video.mp4 \
+                -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
+                -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
+                -g 60 -c:a aac -b:a 128k -ar 44100 \
+                -map_metadata -1 -metadata service_provider="OBS" \
+                -flvflags no_duration_filesize \
+                -f flv "${{ secrets.BILI_RTMP }}"
+              echo "推流意外断开，5秒后自动重连..."
+              sleep 5
+            done
+          ' || true
