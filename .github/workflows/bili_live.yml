@@ -1,4 +1,4 @@
-name: Bilibili 24H Live (Pure & Stable)
+name: Bilibili 24H Live (Anti-AI & Dynamic Bitrate)
 
 on:
   schedule:
@@ -27,21 +27,23 @@ jobs:
             exit 1
           fi
 
-          echo "开始纯净模式推流..."
+          echo "开始【防检测+动态码率】模式推流..."
           # 2. 核心推流循环
-          # vf: 右上角动态北京时间
-          # b:v: 限制2500k码率，保证不卡顿
-          # metadata: 伪装OBS环境
+          # vf: 同时加入动态噪点干扰和实时时间水印，大幅提高AI绕过率
+          # metadata: 深度伪装成 OBS 29.1.3 版本环境
           timeout 5.5h bash -c '
             while true; do
               ffmpeg -re -i video.mp4 \
-                -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
-                -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
+                -vf "noise=alls=3:allf=t,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
+                -c:v libx264 -preset veryfast \
                 -g 60 -c:a aac -b:a 128k -ar 44100 \
-                -map_metadata -1 -metadata service_provider="OBS" \
+                -map_metadata -1 \
+                -metadata service_provider="OBS" \
+                -metadata encoder="OBS x264 encoder" \
+                -metadata:s:v:0 handler_name="VideoHandler" \
                 -flvflags no_duration_filesize \
                 -f flv "${{ secrets.BILI_RTMP }}"
-              echo "推流意外断开，5秒后自动重连..."
+              echo "推流意外断开或被切断，5秒后自动重连..."
               sleep 5
             done
           ' || true
