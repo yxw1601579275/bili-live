@@ -1,51 +1,50 @@
-name: 24H Ultra-Stable Live (Anti-AI Expert)
+name: Sleep Aid Live (Dynamic Audio Wave)
 
 on:
   schedule:
-    - cron: '0 */5 * * *' # 每5小时自动重启
-  workflow_dispatch:      # 允许手动随时启动
+    - cron: '0 */5 * * *' 
+  workflow_dispatch:      
 
 jobs:
   push-live:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 
 
       - name: Cache Video File
         id: cache-video
         uses: actions/cache@v3
         with:
           path: video.mp4
-          key: video-v1
+          key: rain-video-v1 # 如果你换了别的雨声视频，请修改这里
 
       - name: Install FFmpeg and Fonts
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          sudo apt-get install -y ffmpeg fonts-dejavu-core 
 
       - name: Download Video (Only if not cached)
         if: steps.cache-video.outputs.cache-hit != 'true'
         run: |
-          wget -c -O video.mp4 "https://objectstorageapi.ap-southeast-1.clawcloudrun.com/szi722v0-mine/video.mp4"
+          wget -c -O video.mp4 "https://objectstorageapi.ap-southeast-1.clawcloudrun.com/szi722v0-mine/video.mp4" 
 
-      - name: Stream with Advanced Anti-AI
+      - name: Stream with Natural Wind Effect
         run: |
-          echo "正在执行深度防识别推流..."
-          (while true; do echo "--- [$(date +'%H:%M:%S')] 状态：深度干扰推流中 ---"; sleep 300; done) &
+          echo "开启助眠防封推流（动态声波模式）..."
+          (while true; do echo "--- [$(date +'%H:%M:%S')] 雨声助眠直播正常运行 ---"; sleep 300; done) &
           
-          # 修正北京时区，解决时间对不上的问题
           export TZ="Asia/Shanghai"
           
           timeout 5.5h bash -c '
             while true; do
-              # 核心改进点：
-              # 1. 增加 random 滤镜：每隔几帧产生极其轻微的像素抖动，肉眼无感但能彻底破坏画面哈希
-              # 2. 强制 -g 60：每2秒一个关键帧，符合直播平台对“实时流”的硬性要求
-              # 3. 限制 3000k 码率：防止网络波动导致回放时“时间飞快”
+              # 核心修改：
+              # -af "tremolo...": 增加极缓的自然风感音量起伏，彻底粉碎音频查重
+              # -vf noise=alls=2: 降低画面噪点强度，保证助眠画面的观感
               ffmpeg -re -i video.mp4 \
                 -r 30 \
-                -vf "noise=alls=4:allp=t,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
+                -vf "noise=alls=2:allp=t,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
+                -af "tremolo=f=0.05:d=0.1" \
                 -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
                 -pix_fmt yuv420p -g 60 -keyint_min 60 -sc_threshold 0 \
                 -c:a aac -b:a 128k -ar 44100 \
@@ -53,7 +52,7 @@ jobs:
                 -loglevel error \
                 -f flv "${{ secrets.BILI_RTMP }}" 
           
-              echo "连接意外断开，5秒后尝试重连..."
+              echo "推流重置，5秒后重连..."
               sleep 5
             done
           ' || true
