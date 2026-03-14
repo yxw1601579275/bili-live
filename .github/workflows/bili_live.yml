@@ -38,12 +38,13 @@ jobs:
           
           timeout 5.5h bash -c '
             while true; do
-              # 【已修复】将 noise 滤镜的 allp=t 修正为合法的 allf=t
+              # 【已修复】tremolo 频率 f 设定为合法最小值 0.1
+              # 【已优化】移除锁码率参数，解除网络带宽强限制
               ffmpeg -re -i video.mp4 \
                 -r 30 \
                 -vf "noise=alls=2:allf=t,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
-                -af "tremolo=f=0.05:d=0.1" \
-                -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
+                -af "tremolo=f=0.1:d=0.1" \
+                -c:v libx264 -preset veryfast \
                 -pix_fmt yuv420p -g 60 -keyint_min 60 -sc_threshold 0 \
                 -c:a aac -b:a 128k -ar 44100 \
                 -map_metadata -1 -metadata service_provider="OBS" -metadata encoder="OBS x264 encoder" \
