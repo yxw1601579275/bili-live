@@ -1,4 +1,4 @@
-name: Sleep Aid Live (Dynamic Audio Wave)
+name: Sleep Aid Live (Chinese Time & Stable)
 
 on:
   schedule:
@@ -19,32 +19,35 @@ jobs:
           path: video.mp4
           key: rain-video-v1
 
-      - name: Install FFmpeg and Fonts
+      - name: Install FFmpeg and Chinese Fonts
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core 
+          # 【修改点1】额外安装 fonts-wqy-zenhei (文泉驿正黑中文字体)，防止汉字乱码
+          sudo apt-get install -y ffmpeg fonts-wqy-zenhei 
 
       - name: Download Video (Only if not cached)
         if: steps.cache-video.outputs.cache-hit != 'true'
         run: |
           wget -c -O video.mp4 "https://objectstorageapi.ap-southeast-1.clawcloudrun.com/szi722v0-mine/video.mp4" 
 
-      - name: Stream with Natural Wind Effect
+      - name: Stream with Stable Network
         run: |
-          echo "开启助眠防封推流（动态声波模式）..."
+          echo "开启助眠防封推流（中文时间 + 锁定2500k防卡顿）..."
           (while true; do echo "--- [$(date +'%H:%M:%S')] 雨声助眠直播正常运行 ---"; sleep 300; done) &
           
           export TZ="Asia/Shanghai"
           
           timeout 5.5h bash -c '
             while true; do
-              # 【已修复】tremolo 频率 f 设定为合法最小值 0.1
-              # 【已优化】移除锁码率参数，解除网络带宽强限制
+              # 【修改点2】fontfile 调用中文字体
+              # 【修改点3】text 改为 %Y年%m月%d日 %H\:%M\:%S 格式
+              # 【修改点4】x坐标改为 w-tw-30 (用画面宽度减去文字总宽度)，防止因为字数变多导致超出屏幕边缘
+              # 【修改点5】重新加入 -b:v 2500k -maxrate 2500k -bufsize 5000k 严格限制带宽
               ffmpeg -re -i video.mp4 \
                 -r 30 \
-                -vf "noise=alls=2:allf=t,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
+                -vf "noise=alls=2:allf=t,drawtext=fontfile=/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc:text='\''%{localtime\:%Y年%m月%d日 %H\\\\\:%M\\\\\:%S}'\'':x=w-tw-30:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
                 -af "tremolo=f=0.1:d=0.1" \
-                -c:v libx264 -preset veryfast \
+                -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
                 -pix_fmt yuv420p -g 60 -keyint_min 60 -sc_threshold 0 \
                 -c:a aac -b:a 128k -ar 44100 \
                 -map_metadata -1 -metadata service_provider="OBS" -metadata encoder="OBS x264 encoder" \
