@@ -2,22 +2,22 @@ name: Sleep Aid Live (Dynamic Audio Wave)
 
 on:
   schedule:
-    - cron: '0 */5 * * *' 
-  workflow_dispatch:      
+    - cron: '0 */5 * * *'
+  workflow_dispatch:
 
 jobs:
   push-live:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4 
+        uses: actions/checkout@v4
 
       - name: Cache Video File
         id: cache-video
         uses: actions/cache@v3
         with:
           path: video.mp4
-          key: rain-video-v1 # 如果你换了别的雨声视频，请修改这里
+          key: rain-video-v1
 
       - name: Install FFmpeg and Fonts
         run: |
@@ -38,12 +38,10 @@ jobs:
           
           timeout 5.5h bash -c '
             while true; do
-              # 核心修改：
-              # -af "tremolo...": 增加极缓的自然风感音量起伏，彻底粉碎音频查重
-              # -vf noise=alls=2: 降低画面噪点强度，保证助眠画面的观感
+              # 【已修复】将 noise 滤镜的 allp=t 修正为合法的 allf=t
               ffmpeg -re -i video.mp4 \
                 -r 30 \
-                -vf "noise=alls=2:allp=t,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
+                -vf "noise=alls=2:allf=t,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='\''%{localtime\:%H\\\\\:%M\\\\\:%S}'\'':x=w-220:y=30:fontsize=26:fontcolor=white:shadowcolor=black:shadowx=2" \
                 -af "tremolo=f=0.05:d=0.1" \
                 -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
                 -pix_fmt yuv420p -g 60 -keyint_min 60 -sc_threshold 0 \
